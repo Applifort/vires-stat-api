@@ -1,0 +1,29 @@
+version: "3.7"
+
+x-api-volumes: &api-volumes
+  - .:/app:cached
+  - ~/.ssh:/root/.ssh
+  - ~/.bash_history:/root/.bash_history
+  - ~/.irbrc:/root/.irbrc
+  - bundle_cache:/bundle_cache
+
+x-api-environment: &api-environment
+  - BUNDLE_PATH=/bundle_cache
+  - GEM_HOME=/bundle_cache
+  - GEM_PATH=/bundle_cache:/usr/local/bundle
+
+services:
+  api:
+    build: .
+    volumes: *api-volumes
+    ports:
+      - "8080:8080"
+    environment: *api-environment
+    command: bash -c ""
+    stdin_open: true
+    tty: true
+    env_file:
+      - ./.env
+
+volumes:
+  bundle_cache:
