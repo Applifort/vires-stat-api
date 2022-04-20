@@ -1,4 +1,4 @@
-FROM ruby:2.7.1-alpine
+FROM ruby:2.7-alpine3.15
 
 ARG APP_ROOT=/app
 
