@@ -1,12 +1,14 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    fast_jsonparser (0.5.0)
     redis (4.6.0)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
+  fast_jsonparser
   redis
 
 RUBY VERSION
