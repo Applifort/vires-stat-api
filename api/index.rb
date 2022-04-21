@@ -24,7 +24,6 @@ Handler = Proc.new do |req, res|
       end
     end
   end
-  
 
   res.status = 200
   res['Content-Type'] = 'text/text; charset=utf-8'
