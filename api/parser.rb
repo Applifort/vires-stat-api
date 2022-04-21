@@ -6,13 +6,15 @@ URL = 'https://nodes.wavesnodes.com/transactions/address/3PAZv9tgK1PX7dKR7b4kchq
 LIMIT = 10
 
 class Parser
-  def parse_last_transactions
-    uri = URI("#{URL}/limit/#{LIMIT}")
-    res = Net::HTTP.get_response(uri)
+  class << self
+    def parse_last_transactions
+      uri = URI("#{URL}/limit/#{LIMIT}")
+      res = Net::HTTP.get_response(uri)
 
-    return unless if res.is_a?(Net::HTTPSuccess)
+      return unless res.is_a?(Net::HTTPSuccess)
 
-    raw_data = res.body
-    JSON.parse(raw_data).first
+      raw_data = res.body
+      JSON.parse(raw_data).first
+    end
   end
 end

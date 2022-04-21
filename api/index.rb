@@ -2,9 +2,10 @@ require './api/redis_db'
 require './api/parser'
 
 Handler = Proc.new do |req, res|
-  client = RedisDb.new
+  client = RedisDb.client
 
   client.set('processed_entities', 0)
+  client.set('found', 0)
 
   transactions = Parser.parse_last_transactions
   transactions.each do |transaction|
@@ -17,6 +18,7 @@ Handler = Proc.new do |req, res|
       if kind_of?(Array)
         invoke = invokes.find {|inv| ['depositFor', 'withdrawFor'].include? inv.dig('call', 'function')}
         if !invoke.nil?
+          multi.incr('found')
           multi.hset('transactions', transaction_id, invoke.dig('call', 'function').to_json)
         end
       end
