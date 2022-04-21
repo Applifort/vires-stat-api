@@ -19,7 +19,7 @@ Handler = Proc.new do |req, res|
         invoke = invokes.find {|inv| ['depositFor', 'withdrawFor'].include? inv.dig('call', 'function')}
         if !invoke.nil?
           multi.incr('found')
-          multi.hset('transactions', transaction_id, invoke.dig('call', 'function').to_json)
+          multi.hset('transactions', transaction_id, invoke.dig('call').to_json)
         end
       end
     end

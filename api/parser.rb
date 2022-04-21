@@ -3,7 +3,7 @@ require 'uri'
 require 'json'
 
 URL = 'https://nodes.wavesnodes.com/transactions/address/3PAZv9tgK1PX7dKR7b4kchq5qdpUS3G5sYT'
-LIMIT = 10
+LIMIT = 100
 
 class Parser
   class << self
