@@ -1,6 +1,6 @@
 class Persister
   class << self
-    def persist_initial(transactions, state)
+    def persist_initial(transactions, state, client)
       main_head_transaction_id = state['main_head_transaction_id']
       main_last_transaction_id = state['main_last_transaction_id']
       secondary_head_transaction_id = state['secondary_head_transaction_id']
@@ -11,8 +11,8 @@ class Persister
         timestamp = transaction['timestamp']
 
         client.multi do |multi|
-          multi.hset('state', 'main_head_transaction_id', transaction_id) if index.zero?
-          multi.hset('state', 'main_last_transaction_id', transaction_id)
+          multi.hmset('state', 'main_head_transaction_id', transaction_id) if index.zero?
+          multi.hmset('state', 'main_last_transaction_id', transaction_id)
           multi.zadd('transactions', timestamp, transaction.to_json)
         end
       end
