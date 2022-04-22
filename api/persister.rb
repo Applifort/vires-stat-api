@@ -7,8 +7,8 @@ class Persister
       secondary_last_transaction_id = state['secondary_last_transaction_id']
       
       transactions.each_with_index do |transaction, index|
+        transaction_id = transaction['id']
         timestamp = transaction['timestamp']
-        date = parse_date(timestamp)
 
         client.multi do |multi|
           multi.hset('state', 'main_head_transaction_id', transaction_id) if index.zero?
