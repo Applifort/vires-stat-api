@@ -8,8 +8,8 @@ class Helper
 
       return 'dig' if action == 'dig'
       return 'initial' if main_head_transaction_id.empty? && main_last_transaction_id.empty?
-      return 'update' if secondary_head_transaction_id.empty? && secondary_last_transaction_id.empty?
-      'idle'
+      return 'latest' if secondary_head_transaction_id.empty? && secondary_last_transaction_id.empty?
+      'continue'
     end
   end
 end
