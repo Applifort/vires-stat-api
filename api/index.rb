@@ -9,10 +9,10 @@ Handler = Proc.new do |req, res|
   state = client.hgetall('state')
   action = Helper.get_state(state, req['action'])
 
-  client.set('req', req)
-  client.set('test_state', state)
+  client.set('action', action)
+  client.set('test_state', req['action'])
 
-  # case state
+  # case action
   # when 'dig'
   #   transactions = Parser.get_vires_transactions(state['main_last_transaction_id'])
   #   Persister.digging(transactions, state, client)
