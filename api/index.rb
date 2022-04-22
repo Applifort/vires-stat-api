@@ -7,10 +7,9 @@ Handler = Proc.new do |req, res|
   client = RedisDb.client
 
   state = client.hgetall('state')
-  action = Helper.get_state(state, req['action'])
+  action = Helper.get_state(state, req.query['action'])
 
-  client.set('action', action)
-  client.set('test_state', req['action'])
+  client.set('test_state', req.query['action'])
 
   # case action
   # when 'dig'
