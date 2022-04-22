@@ -1,28 +1,27 @@
 require './api/redis_db'
 require './api/parser'
+require './api/persister'
+require './api/helper'
 
 Handler = Proc.new do |req, res|
   client = RedisDb.client
 
-  client.set('processed_entities', 0)
-  client.set('found', 0)
+  state = client.hgetall('state')
+  action = Helper.get_state(state, req['action'])
 
-  transactions = Parser.parse_last_transactions
-  transactions.each do |transaction|
-    transaction_id = transaction['id']
-    invokes = transaction.dig('stateChanges', 'invokes')
-
-    client.multi do |multi|
-      multi.set('last_parsed_transaction_id', transaction_id)
-      multi.incr("processed_entities")
-      if invokes.kind_of?(Array)
-        invoke = invokes.find {|inv| ['depositFor', 'withdrawFor'].include? inv.dig('call', 'function')}
-        if !invoke.nil?
-          multi.incr('found')
-          multi.hset('transactions', transaction_id, invoke.dig('call').to_json)
-        end
-      end
-    end
+  case state
+  when 'dig'
+    transactions = Parser.get_vires_transactions(state['main_last_transaction_id'])
+    Persister.process_digging(transactions, state)
+  when 'initial'
+    transactions = Parser.get_vires_transactions
+    Persister.process_initial(transactions, state)
+  when 'update'
+    transactions = Parser.get_vires_transactions(state['secondary_last_transaction_id'])
+    Persister.process_update(transactions, state)
+  when 'idle'
+    transactions = Parser.get_vires_transactions
+    Persister.process_initial(transactions, state)
   end
 
   res.status = 200
