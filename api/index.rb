@@ -12,16 +12,16 @@ Handler = Proc.new do |req, res|
   case state
   when 'dig'
     transactions = Parser.get_vires_transactions(state['main_last_transaction_id'])
-    Persister.process_digging(transactions, state)
+    Persister.persist_digging(transactions, state)
   when 'initial'
     transactions = Parser.get_vires_transactions
-    Persister.process_initial(transactions, state)
+    Persister.persist_initial(transactions, state)
   when 'update'
     transactions = Parser.get_vires_transactions(state['secondary_last_transaction_id'])
-    Persister.process_update(transactions, state)
+    Persister.persist_update(transactions, state)
   when 'idle'
     transactions = Parser.get_vires_transactions
-    Persister.process_initial(transactions, state)
+    Persister.persist_refresh(transactions, state)
   end
 
   res.status = 200
