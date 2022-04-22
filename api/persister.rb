@@ -14,9 +14,21 @@ class Persister
     end
 
     def continue(transactions, state, client)
+      main_head_transaction_id = state['main_head_transaction_id']
+      secondary_head_transaction_id = state['secondary_head_transaction_id']
+
       transactions.each do |transaction|
         transaction_id = transaction['id']
         timestamp = transaction['timestamp']
+
+        if main_head_transaction_id == transaction_id
+          client.multi do |multi|
+            multi.hmset('state', 'secondary_head_transaction_id', '') if index.zero?
+            multi.hmset('state', 'secondary_last_transaction_id', '')
+            multi.hmset('state', 'main_head_transaction_id', secondary_head_transaction_id)
+          end
+          break
+        end
 
         client.multi do |multi|
           multi.hmset('state', 'secondary_last_transaction_id', transaction_id)
@@ -26,9 +38,22 @@ class Persister
     end
 
     def latest(transactions, state, client)
+      main_head_transaction_id = state['main_head_transaction_id']
+      secondary_head_transaction_id = ''
+
       transactions.each_with_index do |transaction, index|
         transaction_id = transaction['id']
         timestamp = transaction['timestamp']
+        secondary_head_transaction_id = transaction_id if index.zero?
+
+        if main_head_transaction_id == transaction_id
+          client.multi do |multi|
+            multi.hmset('state', 'secondary_head_transaction_id', '') if index.zero?
+            multi.hmset('state', 'secondary_last_transaction_id', '')
+            multi.hmset('state', 'main_head_transaction_id', secondary_head_transaction_id)
+          end
+          break
+        end
 
         client.multi do |multi|
           multi.hmset('state', 'secondary_head_transaction_id', transaction_id) if index.zero?
