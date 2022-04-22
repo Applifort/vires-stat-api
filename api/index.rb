@@ -9,22 +9,20 @@ Handler = Proc.new do |req, res|
   state = client.hgetall('state')
   action = Helper.get_state(state, req.query['action'])
 
-  client.set('test_state', req.query['action'])
-
-  # case action
-  # when 'dig'
-  #   transactions = Parser.get_vires_transactions(state['main_last_transaction_id'])
-  #   Persister.digging(transactions, state, client)
-  # when 'initial'
-  #   transactions = Parser.get_vires_transactions
-  #   Persister.initial(transactions, state, client)
-  # when 'continue'
-  #   transactions = Parser.get_vires_transactions(state['secondary_last_transaction_id'])
-  #   Persister.continue(transactions, state, client)
-  # when 'latest'
-  #   transactions = Parser.get_vires_transactions
-  #   Persister.latest(transactions, state, client)
-  # end
+  case action
+  when 'dig'
+    transactions = Parser.get_vires_transactions(state['main_last_transaction_id'])
+    Persister.digging(transactions, state, client)
+  when 'initial'
+    transactions = Parser.get_vires_transactions
+    Persister.initial(transactions, state, client)
+  when 'continue'
+    transactions = Parser.get_vires_transactions(state['secondary_last_transaction_id'])
+    Persister.continue(transactions, state, client)
+  when 'latest'
+    transactions = Parser.get_vires_transactions
+    Persister.latest(transactions, state, client)
+  end
 
   res.status = 200
   res['Content-Type'] = 'text/text; charset=utf-8'
