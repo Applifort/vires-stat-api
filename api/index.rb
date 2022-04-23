@@ -16,28 +16,28 @@ Handler = Proc.new do |req, res|
     when 'dig'
       client.hmset('state', 'action', 'dig', 'state', 'processing')
       transactions = Parser.get_vires_transactions(meta['main_last_transaction_id'])
-      Persister.digging(transactions, meta, client)
+      processed_count = Persister.digging(transactions, meta, client)
       client.hmset('state', 'action', nil, 'state', 'idle')
     when 'initial'
       client.hmset('state', 'action', 'initial', 'state', 'processing')
       transactions = Parser.get_vires_transactions
-      Persister.initial(transactions, meta, client)
+      processed_count = Persister.initial(transactions, meta, client)
       client.hmset('state', 'action', nil, 'state', 'idle')
     when 'continue'
       client.hmset('state', 'action', 'continue', 'state', 'processing')
       transactions = Parser.get_vires_transactions(meta['secondary_last_transaction_id'])
-      Persister.continue(transactions, meta, client)
+      processed_count = Persister.continue(transactions, meta, client)
       client.hmset('state', 'action', nil, 'state', 'idle')
     when 'latest'
       client.hmset('state', 'action', 'latest', 'state', 'processing')
       transactions = Parser.get_vires_transactions
-      Persister.latest(transactions, meta, client)
+      processed_count = Persister.latest(transactions, meta, client)
       client.hmset('state', 'action', nil, 'state', 'idle')
     end
 
     res.status = 200
     res['Content-Type'] = 'text/text; charset=utf-8'
-    res.body = "Suceefully processed \/n#{action}"
+    res.body = "Suceefully processed #{processed_count} transacttions\/n#{action}"
   end
 
   if state['state'] == 'processing'
