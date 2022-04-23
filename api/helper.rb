@@ -1,6 +1,6 @@
 class Helper
   class << self
-    def get_state(meta, action)
+    def get_action(meta, action)
       main_head_transaction_id = meta['main_head_transaction_id']
       main_last_transaction_id = meta['main_last_transaction_id']
       secondary_head_transaction_id = meta['secondary_head_transaction_id']
