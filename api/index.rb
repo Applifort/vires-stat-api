@@ -6,25 +6,42 @@ require './api/helper'
 Handler = Proc.new do |req, res|
   client = RedisDb.client
 
+  meta = client.hgetall('meta')
   state = client.hgetall('state')
-  action = Helper.get_state(state, req.query['action'])
 
-  case action
-  when 'dig'
-    transactions = Parser.get_vires_transactions(state['main_last_transaction_id'])
-    Persister.digging(transactions, state, client)
-  when 'initial'
-    transactions = Parser.get_vires_transactions
-    Persister.initial(transactions, state, client)
-  when 'continue'
-    transactions = Parser.get_vires_transactions(state['secondary_last_transaction_id'])
-    Persister.continue(transactions, state, client)
-  when 'latest'
-    transactions = Parser.get_vires_transactions
-    Persister.latest(transactions, state, client)
+  unless state['state'] == 'processing'
+    action = Helper.get_action(meta, req.query['action'])
+
+    case action
+    when 'dig'
+      client.hmset('state', 'action', 'dig', 'state', 'processing')
+      transactions = Parser.get_vires_transactions(meta['main_last_transaction_id'])
+      Persister.digging(transactions, meta, client)
+      client.hmset('state', 'action', nil, 'state', 'idle')
+    when 'initial'
+      client.hmset('state', 'initial', 'dig', 'state', 'processing')
+      transactions = Parser.get_vires_transactions
+      Persister.initial(transactions, meta, client)
+      client.hmset('state', 'action', nil, 'state', 'idle')
+    when 'continue'
+      client.hmset('state', 'initial', 'continue', 'state', 'processing')
+      transactions = Parser.get_vires_transactions(meta['secondary_last_transaction_id'])
+      Persister.continue(transactions, meta, client)
+      client.hmset('state', 'action', nil, 'state', 'idle')
+    when 'latest'
+      client.hmset('state', 'latest', 'dig', 'state', 'processing')
+      transactions = Parser.get_vires_transactions
+      Persister.latest(transactions, meta, client)
+      client.hmset('state', 'action', nil, 'state', 'idle')
+    end
+
+    res.status = 200
+    res['Content-Type'] = 'text/text; charset=utf-8'
+    res.body = "Suceefully processed \/n#{action}"
+    return
   end
 
   res.status = 200
   res['Content-Type'] = 'text/text; charset=utf-8'
-  res.body = "OK"
+  res.body = "Aborted"
 end

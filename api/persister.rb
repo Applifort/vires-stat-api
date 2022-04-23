@@ -1,21 +1,21 @@
 class Persister
   class << self
-    def initial(transactions, state, client)
+    def initial(transactions, _meta, client)
       transactions.each_with_index do |transaction, index|
         transaction_id = transaction['id']
         timestamp = transaction['timestamp']
 
         client.multi do |multi|
-          multi.hmset('state', 'main_head_transaction_id', transaction_id) if index.zero?
-          multi.hmset('state', 'main_last_transaction_id', transaction_id)
+          multi.hmset('meta', 'main_head_transaction_id', transaction_id) if index.zero?
+          multi.hmset('meta', 'main_last_transaction_id', transaction_id)
           multi.zadd('transactions', timestamp, transaction.to_json)
         end
       end
     end
 
-    def continue(transactions, state, client)
-      main_head_transaction_id = state['main_head_transaction_id']
-      secondary_head_transaction_id = state['secondary_head_transaction_id']
+    def continue(transactions, meta, client)
+      main_head_transaction_id = meta['main_head_transaction_id']
+      secondary_head_transaction_id = meta['secondary_head_transaction_id']
 
       transactions.each do |transaction|
         transaction_id = transaction['id']
@@ -23,22 +23,22 @@ class Persister
 
         if main_head_transaction_id == transaction_id
           client.multi do |multi|
-            multi.hmset('state', 'secondary_head_transaction_id', '') if index.zero?
-            multi.hmset('state', 'secondary_last_transaction_id', '')
-            multi.hmset('state', 'main_head_transaction_id', secondary_head_transaction_id)
+            multi.hmset('meta', 'secondary_head_transaction_id', '') if index.zero?
+            multi.hmset('meta', 'secondary_last_transaction_id', '')
+            multi.hmset('meta', 'main_head_transaction_id', secondary_head_transaction_id)
           end
           break
         end
 
         client.multi do |multi|
-          multi.hmset('state', 'secondary_last_transaction_id', transaction_id)
+          multi.hmset('meta', 'secondary_last_transaction_id', transaction_id)
           multi.zadd('transactions', timestamp, transaction.to_json)
         end
       end
     end
 
-    def latest(transactions, state, client)
-      main_head_transaction_id = state['main_head_transaction_id']
+    def latest(transactions, meta, client)
+      main_head_transaction_id = meta['main_head_transaction_id']
       secondary_head_transaction_id = ''
 
       transactions.each_with_index do |transaction, index|
@@ -48,16 +48,16 @@ class Persister
 
         if main_head_transaction_id == transaction_id
           client.multi do |multi|
-            multi.hmset('state', 'secondary_head_transaction_id', '') if index.zero?
-            multi.hmset('state', 'secondary_last_transaction_id', '')
-            multi.hmset('state', 'main_head_transaction_id', secondary_head_transaction_id)
+            multi.hmset('meta', 'secondary_head_transaction_id', '') if index.zero?
+            multi.hmset('meta', 'secondary_last_transaction_id', '')
+            multi.hmset('meta', 'main_head_transaction_id', secondary_head_transaction_id)
           end
           break
         end
 
         client.multi do |multi|
-          multi.hmset('state', 'secondary_head_transaction_id', transaction_id) if index.zero?
-          multi.hmset('state', 'secondary_last_transaction_id', transaction_id)
+          multi.hmset('meta', 'secondary_head_transaction_id', transaction_id) if index.zero?
+          multi.hmset('meta', 'secondary_last_transaction_id', transaction_id)
           multi.zadd('transactions', timestamp, transaction.to_json)
         end
       end

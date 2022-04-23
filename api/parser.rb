@@ -8,8 +8,8 @@ LIMIT = 100
 
 class Parser
   class << self
-    def get_vires_transactions(id = nil)
-      url = id.nil? ? vires_transactions_url : vires_transactions_with_pagination(id)
+    def get_vires_transactions(id = nil, limit = LIMIT)
+      url = id.nil? ? vires_transactions_url(limit) : vires_transactions_with_pagination(id, limit)
       res = Net::HTTP.get_response(URI(url))
 
       raise 'Failed transactions requiest' unless res.is_a?(Net::HTTPSuccess)
@@ -20,11 +20,11 @@ class Parser
 
     private
 
-    def vires_transactions_with_pagination(id)
-      "#{vires_transactions_url}?after#{id}"
+    def vires_transactions_with_pagination(id, limit)
+      "#{vires_transactions_url(limit)}?after=#{id}"
     end
 
-    def vires_transactions_url(limit = LIMIT)
+    def vires_transactions_url(limit)
       "#{transactions_url}/address/#{VIRES_ADDRESS}/limit/#{limit}"
     end
 
