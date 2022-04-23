@@ -15,10 +15,8 @@ Handler = Proc.new do |req, res|
 
     case action
     when 'dig'
-      
       transactions = Parser.get_vires_transactions(meta['main_last_transaction_id'])
       processed_count = Persister.digging(transactions, meta, client)
-     
     when 'initial'
       transactions = Parser.get_vires_transactions
       processed_count = Persister.initial(transactions, meta, client)
@@ -33,7 +31,7 @@ Handler = Proc.new do |req, res|
 
     res.status = 200
     res['Content-Type'] = 'text/text; charset=utf-8'
-    res.body = "Suceefully processed #{processed_count} transacttions\/n#{action}"
+    res.body = "Suceefully processed #{processed_count} transactions"
   end
 
   if state['state'] == 'processing'
