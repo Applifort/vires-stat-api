@@ -1,117 +1,129 @@
 class Persister
   class << self
+    def discard_state(client)
+      client.hmset('meta', 'main_head_transaction_id', nil)
+      client.hmset('meta', 'main_last_transaction_id', nil)
+      client.hmset('meta', 'secondary_head_transaction_id', nil)
+      client.hmset('meta', 'secondary_last_transaction_id', nil)
+    end
+
     def initial(transactions, _meta, client)
-      count = 0
+      processed_count = 0
+      processed_transactions = []
+      main_head_transaction_id = nil
+      main_last_transaction_id = nil
+
       transactions.each_with_index do |transaction, index|
         transaction_id = transaction['id']
-        timestamp = transaction['timestamp']
+        main_head_transaction_id = transaction_id if index.zero?
+        main_last_transaction_id = transaction_id
 
-        count += 1
-        client.multi do |multi|
-          multi.hmset('meta', 'main_head_transaction_id', transaction_id) if index.zero?
-          multi.hmset('meta', 'main_last_transaction_id', transaction_id)
-          multi.zadd('transactions', timestamp, transaction.to_json)
-        end
+        timestamp = transaction['timestamp']
+        processed_transactions << [timestamp, transaction.to_json]
+
+        processed_count += 1
       end
 
-      count
+      client.multi do |multi|
+        multi.hmset('meta', 'main_head_transaction_id', main_head_transaction_id)
+        multi.hmset('meta', 'main_last_transaction_id', main_last_transaction_id)
+        multi.zadd('transactions', processed_transactions.flatten)
+      end
+
+      processed_count
     end
 
     def continue(transactions, meta, client)
       main_head_transaction_id = meta['main_head_transaction_id']
       secondary_head_transaction_id = meta['secondary_head_transaction_id']
-      count = 0
+      secondary_last_transaction_id = nil
+
+      processed_count = 0
+      processed_transactions = []
 
       transactions.each do |transaction|
         transaction_id = transaction['id']
         timestamp = transaction['timestamp']
 
         if main_head_transaction_id == transaction_id
-          client.multi do |multi|
-            multi.hmset('meta', 'secondary_head_transaction_id', '')
-            multi.hmset('meta', 'secondary_last_transaction_id', '')
-            multi.hmset('meta', 'main_head_transaction_id', secondary_head_transaction_id)
-          end
+          main_head_transaction_id = secondary_head_transaction_id
+          secondary_last_transaction_id = nil
+          secondary_head_transaction_id = nil
           break
         end
 
-        count += 1
-
-        client.multi do |multi|
-          multi.hmset('meta', 'secondary_last_transaction_id', transaction_id)
-          multi.zadd('transactions', timestamp, transaction.to_json)
-        end
+        processed_transactions << [timestamp, transaction.to_json]
+        secondary_last_transaction_id = transaction_id
+        processed_count += 1
       end
 
-      count
+      client.multi do |multi|
+        multi.hmset('meta', 'main_head_transaction_id', main_head_transaction_id)
+        multi.hmset('meta', 'secondary_head_transaction_id', secondary_head_transaction_id)
+        multi.hmset('meta', 'secondary_last_transaction_id', secondary_last_transaction_id)
+        multi.zadd('transactions', processed_transactions.flatten) unless processed_transactions.empty?
+      end
+
+      processed_count
     end
 
     def latest(transactions, meta, client)
       main_head_transaction_id = meta['main_head_transaction_id']
-      secondary_head_transaction_id = ''
-      count = 0
+      secondary_head_transaction_id = nil
+      secondary_last_transaction_id = nil
+
+      processed_count = 0
+      processed_transactions = []
 
       transactions.each_with_index do |transaction, index|
         transaction_id = transaction['id']
         timestamp = transaction['timestamp']
-        secondary_head_transaction_id = transaction_id if index.zero?
 
         if main_head_transaction_id == transaction_id
-          client.multi do |multi|
-            multi.hmset('meta', 'secondary_head_transaction_id', '')
-            multi.hmset('meta', 'secondary_last_transaction_id', '')
-            multi.hmset('meta', 'main_head_transaction_id', secondary_head_transaction_id)
-          end
+          main_head_transaction_id = index.zero? ? transaction_id : secondary_head_transaction_id
+          secondary_head_transaction_id = nil
+          secondary_last_transaction_id = nil
           break
         end
 
-        count += 1
-        client.multi do |multi|
-          multi.hmset('meta', 'secondary_head_transaction_id', transaction_id) if index.zero?
-          multi.hmset('meta', 'secondary_last_transaction_id', transaction_id)
-          multi.zadd('transactions', timestamp, transaction.to_json)
-        end
+        secondary_head_transaction_id = transaction_id if index.zero?
+        secondary_last_transaction_id = transaction_id
+        processed_transactions << [timestamp, transaction.to_json]
+
+        processed_count += 1
       end
 
-      count
+      client.multi do |multi|
+        multi.hmset('meta', 'secondary_head_transaction_id', secondary_head_transaction_id)
+        multi.hmset('meta', 'secondary_last_transaction_id', secondary_last_transaction_id)
+        multi.hmset('meta', 'main_head_transaction_id', main_head_transaction_id)
+        multi.zadd('transactions', processed_transactions.flatten) unless processed_transactions.empty?
+      end
+
+      processed_count
     end
 
-    # private
+    def digging(transactions, meta, client)
+      main_last_transaction_id = meta['main_last_transaction_id']
+      processed_count = 0
+      processed_transactions = []
 
-    # def grap(transactions)
-    #   filtered_transactions = []
+      transactions.each_with_index do |transaction, index|
+        transaction_id = transaction['id']
+        timestamp = transaction['timestamp']
 
-    #   transactions.each_with_index do |transaction, index|
-    #     transaction_id = transaction['id']
-    #     invokes = allocate(transaction)
-    #     invoke = find_deposits_or_withdrowals_invoke(invokes)
+        processed_transactions << [timestamp, transaction.to_json]
+        main_last_transaction_id = transaction_id
 
-    #     client.multi do |multi|
-    #       multi.set('main_head_transaction_id', transaction_id) if index.zero?
-    #       multi.set('main_last_transaction_id', transaction_id)
-    #       if !invoke.nil?
-    #         timestamp = transaction['timestamp']
-    #         date =  parse_date(timestamp)
-    #         filtered_transactions << transaction
-    #       end
-    #     end
-    #   end
-    #   filtered_transactions
-    # end
+        processed_count += 1
+      end
 
-    # def allocate(invoke)
-    #   invokes = invoke.dig('stateChanges', 'invokes')
-    #   return [invoke] if invokes.empty?
+      client.multi do |multi|
+        multi.hmset('meta', 'main_last_transaction_id', main_last_transaction_id)
+        multi.zadd('transactions', processed_transactions.flatten) unless processed_transactions.empty?
+      end
 
-    #   return [invoke, invokes.map { |inv| allocate(inv) }].flatten
-    # end
-
-    # def parse_date(timestamp)
-    #   Time.at(timestamp.to_i / 1000).strftime('%F')
-    # end
-
-    # def find_deposits_or_withdrowals_invoke(invokes)
-    #   invokes.find {|inv| ['depositFor', 'withdrawFor'].include? inv.dig('call', 'function')}
-    # end
+      processed_count
+    end
   end
 end
