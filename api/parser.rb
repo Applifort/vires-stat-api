@@ -4,7 +4,7 @@ require 'json'
 
 BASE_URL = 'https://nodes.wavesnodes.com'
 VIRES_ADDRESS = '3PAZv9tgK1PX7dKR7b4kchq5qdpUS3G5sYT'
-LIMIT = 100
+LIMIT = 50
 
 class Parser
   class << self
