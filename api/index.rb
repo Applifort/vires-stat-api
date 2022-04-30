@@ -16,22 +16,22 @@ Handler = Proc.new do |req, res|
     case action
     when 'dig'
       transactions = Parser.get_vires_transactions(meta['main_last_transaction_id'])
-      processed_count = Persister.digging(transactions, meta, client)
+      processed_count, time = Persister.digging(transactions, meta, client)
     when 'initial'
       transactions = Parser.get_vires_transactions
-      processed_count = Persister.initial(transactions, meta, client)
+      processed_count, time = Persister.initial(transactions, meta, client)
     when 'continue'
       transactions = Parser.get_vires_transactions(meta['secondary_last_transaction_id'])
-      processed_count = Persister.continue(transactions, meta, client)
+      processed_count, time = Persister.continue(transactions, meta, client)
     when 'latest'
       transactions = Parser.get_vires_transactions
-      processed_count = Persister.latest(transactions, meta, client)
+      processed_count, time = Persister.latest(transactions, meta, client)
     end
     client.hmset('state', 'action', nil, 'state', 'idle')
 
     res.status = 200
     res['Content-Type'] = 'text/text; charset=utf-8'
-    res.body = "Suceefully processed #{processed_count} transactions"
+    res.body = "Suceefully processed #{processed_count} transactions. Last transaction processed date #{time}"
   end
 
   if state['state'] == 'processing'
