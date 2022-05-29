@@ -2,7 +2,6 @@ version: "3.7"
 
 x-api-volumes: &api-volumes
   - .:/app:cached
-  - ~/.ssh:/root/.ssh
   - ~/.bash_history:/root/.bash_history
   - ~/.irbrc:/root/.irbrc
   - bundle_cache:/bundle_cache
