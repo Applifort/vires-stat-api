@@ -12,7 +12,7 @@ Handler = Proc.new do |req, res|
   begin
     if state['state'] == 'idle'
       action = Helper.get_action(meta, req.query['action'])
-      client.hmset('state', 'action', action, 'state', 'processing', 'error': '')
+      client.hmset('state', 'action', action, 'state', 'processing', 'error', '')
 
       case action
       when 'dig'
@@ -50,6 +50,6 @@ Handler = Proc.new do |req, res|
     res.status = 500
     res['Content-Type'] = 'text/text; charset=utf-8'
     res.body = "Error: #{error.message}"
-    client.hmset('state', 'action', nil, 'state', 'error', 'error_message': error.message)
+    client.hmset('state', 'action', nil, 'state', 'error', 'error_message', error.message)
   end
 end
