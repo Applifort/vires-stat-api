@@ -41,7 +41,7 @@ Handler = Proc.new do |req, res|
       res.body = "Aborted. Processing!"
     end
 
-    if state['state'] = 'error'
+    if state['state'] == 'error'
       res.status = 500
       res['Content-Type'] = 'text/text; charset=utf-8'
       res.body = "State error: #{state['error_message']}"
