@@ -47,6 +47,9 @@ Handler = Proc.new do |req, res|
       res.body = "Error: #{state['error_message']}"
     end
   rescue => error
+    res.status = 500
+    res['Content-Type'] = 'text/text; charset=utf-8'
+    res.body = "Error: #{error.message}"
     client.hmset('state', 'action', nil, 'state', 'error', 'error_message': error.message)
   end
 end
