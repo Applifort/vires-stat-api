@@ -44,7 +44,7 @@ Handler = Proc.new do |req, res|
     if state['state'] = 'error'
       res.status = 500
       res['Content-Type'] = 'text/text; charset=utf-8'
-      res.body = "Error: #{state['error_message']}"
+      res.body = "State error: #{state['error_message']}"
     end
   rescue => error
     res.status = 500
